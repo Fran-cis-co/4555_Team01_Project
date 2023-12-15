@@ -1,0 +1,72 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.AI;
+
+public class NewEnemy : MonoBehaviour
+{
+    private StateMachine stateMachine;
+    private NavMeshAgent agent;
+    private GameObject player;
+
+    public EnemyPath path;
+    public GameObject Player { get => player; }
+    public NavMeshAgent Agent { get => agent; }
+    [Header("Sight Values")]
+    public float sightDistance = 20f;
+    public float fieldOfView = 85f;
+    public float eyeHeight;
+    [Header("Weapon Values")]
+    public Transform gunBarrel;
+    [Range(0.1f, 10f)]
+    public float fireRate;
+    // Start is called before the first frame update
+    [SerializeField]
+    private string currentState;
+    void Start()
+    {
+        stateMachine = GetComponent<StateMachine>();
+        agent = GetComponent<NavMeshAgent>();
+        stateMachine.Initialise();
+        player = GameObject.FindGameObjectWithTag("Player");
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        CanSeePlayer();
+        currentState = stateMachine.activeState.ToString();
+    }
+
+    public bool CanSeePlayer() 
+    { 
+        if(player != null)
+        {
+            // is the player close enough to bee seen?
+            // if the player is less than the enemies sight distance
+            if (Vector3.Distance(transform.position, player.transform.position) < sightDistance)
+            {
+                Vector3 targetDirection = player.transform.position - transform.position - (Vector3.up * eyeHeight);
+                float angleToPlayer = Vector3.Angle(targetDirection, transform.forward);
+                // if the player is in the enemies field of view
+                if(angleToPlayer >= -fieldOfView && angleToPlayer <= fieldOfView)
+                {
+                    Ray ray = new Ray(transform.position + (Vector3.up * eyeHeight), targetDirection);
+                    RaycastHit hitInfo = new RaycastHit();
+                    // Check if the enemie is blocked by an object
+                    if(Physics.Raycast(ray,out hitInfo, sightDistance))
+                    {
+                        if (hitInfo.transform.gameObject == player)
+                        {
+                            Debug.DrawRay(ray.origin, ray.direction * sightDistance);
+                            return true;
+                        }
+                    }
+  
+                }
+            }
+        }
+        return false;
+    }
+
+}
